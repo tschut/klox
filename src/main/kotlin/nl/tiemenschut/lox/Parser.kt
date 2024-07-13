@@ -1,13 +1,26 @@
 package nl.tiemenschut.lox
 
+import nl.tiemenschut.KLox
 import nl.tiemenschut.lox.TokenType.*
+
+class ParseError : RuntimeException()
 
 class Parser(private val tokens: List<Token>) {
     private var current: Int = 0
 
+    fun parse(): Expression? = try {
+        expression()
+    } catch (e: ParseError) {
+        null
+    }
+
     private fun expression(): Expression = equality()
 
-    private fun parseBinary(matchTokens: List<TokenType>, rootExpression: Expression, rightLambda: () -> Expression): Expression {
+    private fun parseBinary(
+        matchTokens: List<TokenType>,
+        rootExpression: Expression,
+        rightLambda: () -> Expression,
+    ): Expression {
         if (match(matchTokens)) {
             val operator = previous()
             val right = rightLambda()
@@ -22,7 +35,7 @@ class Parser(private val tokens: List<Token>) {
 
     private fun term() = parseBinary(listOf(MINUS, PLUS), factor(), ::factor)
 
-    private fun factor() = parseBinary(listOf(SLASH, STAR), unary(),::unary)
+    private fun factor() = parseBinary(listOf(SLASH, STAR), unary(), ::unary)
 
     private fun unary(): Expression {
         return if (match(listOf(BANG, MINUS))) {
@@ -40,19 +53,41 @@ class Parser(private val tokens: List<Token>) {
             match(listOf(NUMBER, STRING)) -> Expression.Literal(previous().literal)
             match(listOf(LEFT_PAREN)) -> {
                 val expression = expression()
-                consume(RIGHT_PAREN, "Expect ')' after expression.") // WIP
+                consume(RIGHT_PAREN, "Expect ')' after expression.")
                 Expression.Grouping(expression)
             }
-            else -> throw UnsupportedOperationException("wtf")
+
+            else -> throw error(peek(), "Expected expression.")
+        }
+    }
+
+    private fun consume(type: TokenType, message: String): Token {
+        if (check(listOf(type))) {
+            return advance()
+        }
+        throw error(peek(), message)
+    }
+
+    private fun error(token: Token, message: String): ParseError {
+        KLox.error(token, message)
+        return ParseError()
+    }
+
+    private fun synchronize() {
+        advance()
+        while (!isAtEnd()) {
+            if (previous().type == SEMICOLON) return
+            if(peek().type in listOf(CLASS, FOR, FUN, IF, PRINT, RETURN, VAR, WHILE))  return
+
+            advance()
         }
     }
 
     private fun match(types: List<TokenType>): Boolean {
-        if (check(types)) {
+        return if (check(types)) {
             advance()
-            return true
-        }
-        return false
+            true
+        } else false
     }
 
     private fun check(types: List<TokenType>) = if (isAtEnd()) false else peek().type in types

@@ -1,6 +1,6 @@
 package nl.tiemenschut.lox
 
-import nl.tiemenschut.error
+import nl.tiemenschut.KLox
 import nl.tiemenschut.lox.TokenType.*
 
 private val digits = ('0'..'9').toList()
@@ -68,7 +68,7 @@ class Scanner(private val source: String) {
             '"' -> string()
             in digits -> number()
             in alphas -> identifier()
-            else -> error(line, "Unexpected character '$c'")
+            else -> KLox.error(line, "Unexpected character '$c'")
         }
     }
 
@@ -100,7 +100,7 @@ class Scanner(private val source: String) {
         }
 
         if (isAtEnd()) {
-            error(line, "Unterminated string")
+            KLox.error(line, "Unterminated string")
             return
         }
 
