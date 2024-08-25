@@ -5,6 +5,7 @@ import java.io.File
 import kotlin.system.exitProcess
 
 var hadError: Boolean = false
+var hadRuntimeError: Boolean = false
 
 fun main(args: Array<String>) {
     when (args.size) {
@@ -12,6 +13,7 @@ fun main(args: Array<String>) {
         1 -> {
             KLox.runFile(args[0])
             if (hadError) exitProcess(65)
+            if (hadRuntimeError) exitProcess(70)
         }
         else -> {
             println("Usage: klox [scriptfile]")
@@ -21,6 +23,8 @@ fun main(args: Array<String>) {
 }
 
 object KLox {
+    private val interpreter = Interpreter()
+
     fun runFile(file: String) = run(File(file).readText())
 
     fun runPrompt() {
@@ -39,7 +43,7 @@ object KLox {
 
         if (hadError || expression == null) return
 
-        AstPrinter().print(expression)
+        interpreter.interpret(expression)
     }
 
     fun error(line: Int, message: String) {
@@ -51,8 +55,13 @@ object KLox {
         report(token.line, where, message)
     }
 
+    fun runtimeError(error: RuntimeError) {
+        System.err.println("[line ${error.token.line}] ${error.message}")
+        hadRuntimeError = true
+    }
+
     private fun report(line: Int, where: String, message: String) {
-        println("[line $line] Error $where: $message")
+        System.err.println("[line $line] Error $where: $message")
         hadError = true
     }
 }

@@ -14,7 +14,7 @@ class AstPrinter : Expression.Visitor<String> {
 
     private fun parenthesize(name: String, vararg expressions: Expression): String {
         return expressions.joinToString(prefix = "($name ", postfix = ")", separator = " ") { expression ->
-            expression.visit(this)
+            expression.visit(this)!!
         }
     }
 }
