@@ -5,13 +5,19 @@ import nl.tiemenschut.lox.TokenType.*
 
 class RuntimeError(val token: Token, message: String) : RuntimeException(message)
 
-class Interpreter : Expression.Visitor<Any> {
-    fun interpret(expression: Expression) {
+class Interpreter : Expression.Visitor<Any>, Statement.Visitor {
+    fun interpret(statements: List<Statement>) {
         try {
-            val value = visit(expression)
-            println(value.stringify())
+            statements.forEach { visit(it) }
         } catch (runtimeError: RuntimeError) {
             runtimeError(runtimeError)
+        }
+    }
+
+    override fun visit(statement: Statement) {
+        when (statement) {
+            is Statement.Expression -> visit(statement.expression)
+            is Statement.Print -> println(visit(statement.expression).stringify())
         }
     }
 
@@ -25,51 +31,64 @@ class Interpreter : Expression.Visitor<Any> {
                     checkNumberOperands(expression.operator, left, right)
                     (left as Double) - (right as Double)
                 }
+
                 SLASH -> {
                     if (right is Double && right == 0.0) throw RuntimeError(expression.operator, "Division by zero.")
                     checkNumberOperands(expression.operator, left, right)
                     (left as Double) / (right as Double)
                 }
+
                 STAR -> {
                     checkNumberOperands(expression.operator, left, right)
                     (left as Double) * (right as Double)
                 }
+
                 PLUS -> {
                     if (left is Double && right is Double) (left + right)
                     else if (left is String || right is String) ("${left.stringify()}${right.stringify()}")
-                    else throw RuntimeError(expression.operator, "Operands must be two numbers or one of them must be a string.")
+                    else throw RuntimeError(
+                        expression.operator,
+                        "Operands must be two numbers or one of them must be a string."
+                    )
                 }
+
                 GREATER -> {
                     checkNumberOperands(expression.operator, left, right)
                     (left as Double) > (right as Double)
                 }
+
                 GREATER_EQUAL -> {
                     checkNumberOperands(expression.operator, left, right)
                     (left as Double) >= (right as Double)
                 }
+
                 LESS -> {
                     checkNumberOperands(expression.operator, left, right)
                     (left as Double) < (right as Double)
                 }
+
                 LESS_EQUAL -> {
                     checkNumberOperands(expression.operator, left, right)
                     (left as Double) <= (right as Double)
                 }
+
                 BANG_EQUAL -> !isEqual(left, right)
                 EQUAL_EQUAL -> isEqual(left, right)
                 else -> null
             }
         }
+
         is Expression.Grouping -> visit(expression.expression)
         is Expression.Literal -> expression.value
         is Expression.Unary -> {
             val right = visit(expression.right)
 
-            when(expression.operator.type) {
+            when (expression.operator.type) {
                 MINUS -> {
                     checkNumberOperands(expression.operator, right)
                     -(right as Double)
                 }
+
                 BANG -> !isTruthy(right)
                 else -> null
             }

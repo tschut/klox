@@ -39,11 +39,11 @@ object KLox {
         val scanner = Scanner(source)
         val tokens = scanner.scanTokens()
 
-        val expression = Parser(tokens).parse()
+        val statements = Parser(tokens).parse()
 
-        if (hadError || expression == null) return
+        if (hadError) return
 
-        interpreter.interpret(expression)
+        interpreter.interpret(statements)
     }
 
     fun error(line: Int, message: String) {

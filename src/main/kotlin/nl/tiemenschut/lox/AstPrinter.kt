@@ -2,7 +2,7 @@ package nl.tiemenschut.lox
 
 class AstPrinter : Expression.Visitor<String> {
     fun print(expression: Expression) {
-        println(expression.visit(this))
+        println(visit(expression))
     }
 
     override fun visit(expression: Expression): String = when (expression) {
@@ -14,7 +14,7 @@ class AstPrinter : Expression.Visitor<String> {
 
     private fun parenthesize(name: String, vararg expressions: Expression): String {
         return expressions.joinToString(prefix = "($name ", postfix = ")", separator = " ") { expression ->
-            expression.visit(this)!!
+            visit(expression)
         }
     }
 }

@@ -2,16 +2,37 @@ package nl.tiemenschut.lox
 
 import nl.tiemenschut.KLox
 import nl.tiemenschut.lox.TokenType.*
+import javax.swing.plaf.nimbus.State
 
 class ParseError : RuntimeException()
 
 class Parser(private val tokens: List<Token>) {
     private var current: Int = 0
 
-    fun parse(): Expression? = try {
-        expression()
-    } catch (e: ParseError) {
-        null
+    fun parse(): List<Statement> {
+        val statements = mutableListOf<Statement>()
+        while (!isAtEnd()) {
+            statements.add(statement())
+        }
+
+        return statements
+    }
+
+    private fun statement(): Statement {
+        return if (match(listOf(PRINT))) printStatement()
+        else expressionStatement()
+    }
+
+    private fun printStatement(): Statement {
+        val value = expression()
+        consume(SEMICOLON, "Expect ';' after value.")
+        return Statement.Print(value)
+    }
+
+    private fun expressionStatement(): Statement {
+        val expression = expression()
+        consume(SEMICOLON, "Expect ';' after expression.")
+        return Statement.Expression(expression)
     }
 
     private fun expression(): Expression = equality()
