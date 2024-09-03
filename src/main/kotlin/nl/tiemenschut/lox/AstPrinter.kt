@@ -10,6 +10,7 @@ class AstPrinter : Expression.Visitor<String> {
         is Expression.Grouping -> parenthesize("group", expression.expression)
         is Expression.Literal -> expression.value?.toString() ?: "nil"
         is Expression.Unary -> parenthesize(expression.operator.lexeme, expression.right)
+        is Expression.Variable -> expression.name.lexeme
     }
 
     private fun parenthesize(name: String, vararg expressions: Expression): String {

@@ -7,4 +7,5 @@ sealed class Statement {
 
     data class Expression(val expression: nl.tiemenschut.lox.Expression): Statement()
     data class Print(val expression: nl.tiemenschut.lox.Expression): Statement()
+    data class Var(val name: Token, val initializer: nl.tiemenschut.lox.Expression?): Statement()
 }

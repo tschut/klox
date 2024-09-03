@@ -2,7 +2,6 @@ package nl.tiemenschut.lox
 
 import nl.tiemenschut.KLox
 import nl.tiemenschut.lox.TokenType.*
-import javax.swing.plaf.nimbus.State
 
 class ParseError : RuntimeException()
 
@@ -12,14 +11,24 @@ class Parser(private val tokens: List<Token>) {
     fun parse(): List<Statement> {
         val statements = mutableListOf<Statement>()
         while (!isAtEnd()) {
-            statements.add(statement())
+            declaration()?.let { statements.add(it) }
         }
 
         return statements
     }
 
+    private fun declaration(): Statement? {
+        try {
+            return if (match(VAR)) varDeclaration()
+            else statement()
+        } catch (error: ParseError) {
+            synchronize()
+            return null
+        }
+    }
+
     private fun statement(): Statement {
-        return if (match(listOf(PRINT))) printStatement()
+        return if (match(PRINT)) printStatement()
         else expressionStatement()
     }
 
@@ -35,6 +44,14 @@ class Parser(private val tokens: List<Token>) {
         return Statement.Expression(expression)
     }
 
+    private fun varDeclaration(): Statement {
+        val name = consume(IDENTIFIER, "Expect variable name.")
+        val initializer = if (match(EQUAL)) expression() else null
+        consume(SEMICOLON, "Expect ';' after initializer.")
+
+        return Statement.Var(name, initializer)
+    }
+
     private fun expression(): Expression = equality()
 
     private fun parseBinary(
@@ -42,7 +59,7 @@ class Parser(private val tokens: List<Token>) {
         rootExpression: Expression,
         rightLambda: () -> Expression,
     ): Expression {
-        if (match(matchTokens)) {
+        if (match(*matchTokens.toTypedArray())) {
             val operator = previous()
             val right = rightLambda()
             return parseBinary(matchTokens, Expression.Binary(rootExpression, operator, right), rightLambda)
@@ -59,7 +76,7 @@ class Parser(private val tokens: List<Token>) {
     private fun factor() = parseBinary(listOf(SLASH, STAR), unary(), ::unary)
 
     private fun unary(): Expression {
-        return if (match(listOf(BANG, MINUS))) {
+        return if (match(BANG, MINUS)) {
             Expression.Unary(previous(), unary())
         } else {
             primary()
@@ -68,11 +85,12 @@ class Parser(private val tokens: List<Token>) {
 
     private fun primary(): Expression {
         return when {
-            match(listOf(FALSE)) -> Expression.Literal(false)
-            match(listOf(TRUE)) -> Expression.Literal(true)
-            match(listOf(NIL)) -> Expression.Literal(null)
-            match(listOf(NUMBER, STRING)) -> Expression.Literal(previous().literal)
-            match(listOf(LEFT_PAREN)) -> {
+            match(FALSE) -> Expression.Literal(false)
+            match(TRUE) -> Expression.Literal(true)
+            match(NIL) -> Expression.Literal(null)
+            match(NUMBER, STRING) -> Expression.Literal(previous().literal)
+            match(IDENTIFIER) -> Expression.Variable(previous())
+            match(LEFT_PAREN) -> {
                 val expression = expression()
                 consume(RIGHT_PAREN, "Expect ')' after expression.")
                 Expression.Grouping(expression)
@@ -83,7 +101,7 @@ class Parser(private val tokens: List<Token>) {
     }
 
     private fun consume(type: TokenType, message: String): Token {
-        if (check(listOf(type))) {
+        if (check(type)) {
             return advance()
         }
         throw error(peek(), message)
@@ -98,20 +116,20 @@ class Parser(private val tokens: List<Token>) {
         advance()
         while (!isAtEnd()) {
             if (previous().type == SEMICOLON) return
-            if(peek().type in listOf(CLASS, FOR, FUN, IF, PRINT, RETURN, VAR, WHILE))  return
+            if (peek().type in listOf(CLASS, FOR, FUN, IF, PRINT, RETURN, VAR, WHILE)) return
 
             advance()
         }
     }
 
-    private fun match(types: List<TokenType>): Boolean {
-        return if (check(types)) {
+    private fun match(vararg types: TokenType): Boolean {
+        return if (check(*types)) {
             advance()
             true
         } else false
     }
 
-    private fun check(types: List<TokenType>) = if (isAtEnd()) false else peek().type in types
+    private fun check(vararg types: TokenType) = if (isAtEnd()) false else peek().type in types
 
     private fun advance(): Token {
         if (!isAtEnd()) current++

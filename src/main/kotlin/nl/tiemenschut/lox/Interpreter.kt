@@ -6,6 +6,8 @@ import nl.tiemenschut.lox.TokenType.*
 class RuntimeError(val token: Token, message: String) : RuntimeException(message)
 
 class Interpreter : Expression.Visitor<Any>, Statement.Visitor {
+    private val environment = Environment()
+
     fun interpret(statements: List<Statement>) {
         try {
             statements.forEach { visit(it) }
@@ -18,6 +20,7 @@ class Interpreter : Expression.Visitor<Any>, Statement.Visitor {
         when (statement) {
             is Statement.Expression -> visit(statement.expression)
             is Statement.Print -> println(visit(statement.expression).stringify())
+            is Statement.Var -> environment.define(statement.name.lexeme, statement.initializer?.let { visit(it) })
         }
     }
 
@@ -93,6 +96,8 @@ class Interpreter : Expression.Visitor<Any>, Statement.Visitor {
                 else -> null
             }
         }
+
+        is Expression.Variable -> environment.get(expression.name)
     }
 
     private fun checkNumberOperands(operator: Token, vararg right: Any?) {
