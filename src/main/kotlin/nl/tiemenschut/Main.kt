@@ -30,7 +30,11 @@ object KLox {
     fun runPrompt() {
         while (true) {
             print("> ")
-            readlnOrNull()?.let { run(it) } ?: break
+            try {
+                readlnOrNull()?.let { run(it) } ?: break
+            } catch (e: Exception) {
+
+            }
             hadError = false
         }
     }
