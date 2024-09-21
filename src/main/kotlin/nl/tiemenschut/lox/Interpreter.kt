@@ -98,6 +98,7 @@ class Interpreter : Expression.Visitor<Any>, Statement.Visitor {
         }
 
         is Expression.Variable -> environment.get(expression.name)
+        is Expression.Assign -> environment.assign(expression.name, visit(expression.value))
     }
 
     private fun checkNumberOperands(operator: Token, vararg right: Any?) {

@@ -12,4 +12,12 @@ class Environment(
     } else {
         throw RuntimeError(name, "Undefined variable '${name.lexeme}'.")
     }
+
+    fun assign(name: Token, value: Any?): Any? {
+        if (values.containsKey(name.lexeme)) {
+            return values.put(name.lexeme, value)
+        }
+
+        throw RuntimeError(name, "Undefined variable '${name.lexeme}'.")
+    }
 }

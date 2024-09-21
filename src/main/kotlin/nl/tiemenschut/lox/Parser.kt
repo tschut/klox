@@ -44,6 +44,24 @@ class Parser(private val tokens: List<Token>) {
         return Statement.Expression(expression)
     }
 
+    private fun assignment(): Expression {
+        val expression = equality()
+
+        if (match(EQUAL)) {
+            val equals = previous()
+            val value = assignment()
+
+            if (expression is Expression.Variable) {
+                val name = expression.name
+                return Expression.Assign(name, value)
+            }
+
+            error(equals, "Invalid assignment target.")
+        }
+
+        return expression
+    }
+
     private fun varDeclaration(): Statement {
         val name = consume(IDENTIFIER, "Expect variable name.")
         val initializer = if (match(EQUAL)) expression() else null
@@ -52,7 +70,7 @@ class Parser(private val tokens: List<Token>) {
         return Statement.Var(name, initializer)
     }
 
-    private fun expression(): Expression = equality()
+    private fun expression(): Expression = assignment()
 
     private fun parseBinary(
         matchTokens: List<TokenType>,
