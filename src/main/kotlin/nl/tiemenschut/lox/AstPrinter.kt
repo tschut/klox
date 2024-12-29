@@ -12,6 +12,7 @@ class AstPrinter : Expression.Visitor<String> {
         is Expression.Unary -> parenthesize(expression.operator.lexeme, expression.right)
         is Expression.Variable -> expression.name.lexeme
         is Expression.Assign -> TODO()
+        is Expression.Logical -> TODO()
     }
 
     private fun parenthesize(name: String, vararg expressions: Expression): String {

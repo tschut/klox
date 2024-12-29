@@ -28,9 +28,33 @@ class Parser(private val tokens: List<Token>) {
     }
 
     private fun statement(): Statement {
-        return if (match(PRINT)) printStatement()
-        else if (match(LEFT_BRACE)) Statement.Block(block())
-        else expressionStatement()
+        return when {
+            match(IF) -> ifStatement()
+            match(PRINT) -> printStatement()
+            match(WHILE) -> whileStatement()
+            match(LEFT_BRACE) -> Statement.Block(block())
+            else -> expressionStatement()
+        }
+    }
+
+    private fun whileStatement(): Statement {
+        consume(LEFT_PAREN, "Expect '(' after 'while'.")
+        val condition = expression()
+        consume(RIGHT_PAREN, "Expect ')' after while condition.")
+        val body = statement()
+
+        return Statement.While(condition, body)
+    }
+
+    private fun ifStatement(): Statement {
+        consume(LEFT_PAREN, "Expect '(' after 'if'.")
+        val condition = expression()
+        consume(RIGHT_PAREN, "Expect ')' after if condition.")
+
+        val thenBranch = statement()
+        val elseBranch = if (match(ELSE)) statement() else null
+
+        return Statement.If(condition, thenBranch, elseBranch)
     }
 
     private fun printStatement(): Statement {
@@ -57,7 +81,7 @@ class Parser(private val tokens: List<Token>) {
     }
 
     private fun assignment(): Expression {
-        val expression = equality()
+        val expression = or()
 
         if (match(EQUAL)) {
             val equals = previous()
@@ -84,26 +108,37 @@ class Parser(private val tokens: List<Token>) {
 
     private fun expression(): Expression = assignment()
 
-    private fun parseBinary(
+    private fun parseRecursive(
         matchTokens: List<TokenType>,
         rootExpression: Expression,
         rightLambda: () -> Expression,
+        expressionFactory: (root: Expression, previous: Token, right: Expression) -> Expression = binaryExpressionFactory
     ): Expression {
         if (match(*matchTokens.toTypedArray())) {
             val operator = previous()
             val right = rightLambda()
-            return parseBinary(matchTokens, Expression.Binary(rootExpression, operator, right), rightLambda)
+            return parseRecursive(matchTokens, expressionFactory(rootExpression, operator, right), rightLambda)
         }
         return rootExpression
     }
 
-    private fun equality() = parseBinary(listOf(BANG_EQUAL, EQUAL_EQUAL), comparison(), ::comparison)
+    private val logicalExpressionFactory: (Expression, Token, Expression) -> Expression =
+        { root: Expression, previous: Token, right: Expression -> Expression.Logical(root, previous, right) }
 
-    private fun comparison() = parseBinary(listOf(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL), term(), ::term)
+    private val binaryExpressionFactory: (Expression, Token, Expression) -> Expression =
+        { root: Expression, previous: Token, right: Expression -> Expression.Binary(root, previous, right) }
 
-    private fun term() = parseBinary(listOf(MINUS, PLUS), factor(), ::factor)
+    private fun or(): Expression = parseRecursive(listOf(OR), and(), ::and, logicalExpressionFactory)
 
-    private fun factor() = parseBinary(listOf(SLASH, STAR), unary(), ::unary)
+    private fun and() = parseRecursive(listOf(AND), equality(), ::equality, logicalExpressionFactory)
+
+    private fun equality() = parseRecursive(listOf(BANG_EQUAL, EQUAL_EQUAL), comparison(), ::comparison)
+
+    private fun comparison() = parseRecursive(listOf(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL), term(), ::term)
+
+    private fun term() = parseRecursive(listOf(MINUS, PLUS), factor(), ::factor)
+
+    private fun factor() = parseRecursive(listOf(SLASH, STAR), unary(), ::unary)
 
     private fun unary(): Expression {
         return if (match(BANG, MINUS)) {

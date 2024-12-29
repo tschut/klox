@@ -22,6 +22,16 @@ class Interpreter : Expression.Visitor<Any>, Statement.Visitor {
             is Statement.Print -> println(visit(statement.expression).stringify())
             is Statement.Var -> environment.define(statement.name.lexeme, statement.initializer?.let { visit(it) })
             is Statement.Block -> executeBlock(statement.statements, Environment(enclosing = environment))
+            is Statement.If -> executeIf(statement)
+            is Statement.While -> while(isTruthy(visit(statement.condition))) visit(statement.body)
+        }
+    }
+
+    private fun executeIf(statement: Statement.If) {
+        if (isTruthy(statement.condition)) {
+            visit(statement.condition)
+        } else if (statement.elseBranch != null) {
+            visit(statement.elseBranch)
         }
     }
 
@@ -94,6 +104,13 @@ class Interpreter : Expression.Visitor<Any>, Statement.Visitor {
 
         is Expression.Grouping -> visit(expression.expression)
         is Expression.Literal -> expression.value
+        is Expression.Logical -> {
+            val left = visit(expression.left)
+
+            if (expression.operator.type == OR) {
+                if (isTruthy(expression.left)) left else visit(expression.right)
+            } else if (!isTruthy(expression.left)) left else visit(expression.right)
+        }
         is Expression.Unary -> {
             val right = visit(expression.right)
 

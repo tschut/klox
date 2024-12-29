@@ -5,10 +5,37 @@ sealed class Expression {
         fun visit(expression: Expression): R?
     }
 
-    data class Binary(val left: Expression, val operator: Token, val right: Expression) : Expression()
-    data class Assign(val name: Token, val value: Expression) : Expression()
-    data class Grouping(val expression: Expression) : Expression()
-    data class Literal(val value: Any?) : Expression()
-    data class Unary(val operator: Token, val right: Expression) : Expression()
-    data class Variable(val name: Token) : Expression()
+    data class Binary(
+        val left: Expression,
+        val operator: Token,
+        val right: Expression
+    ) : Expression()
+
+    data class Assign(
+        val name: Token,
+        val value: Expression
+    ) : Expression()
+
+    data class Grouping(
+        val expression: Expression
+    ) : Expression()
+
+    data class Literal(
+        val value: Any?
+    ) : Expression()
+
+    data class Logical(
+        val left: Expression,
+        val operator: Token,
+        val right: Expression
+    ) : Expression()
+
+    data class Unary(
+        val operator: Token,
+        val right: Expression
+    ) : Expression()
+
+    data class Variable(
+        val name: Token
+    ) : Expression()
 }
