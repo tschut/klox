@@ -5,6 +5,7 @@ sealed class Statement {
         fun visit(statement: Statement)
     }
 
+    data class Block(val statements: List<Statement?>) : Statement()
     data class Expression(val expression: nl.tiemenschut.lox.Expression): Statement()
     data class Print(val expression: nl.tiemenschut.lox.Expression): Statement()
     data class Var(val name: Token, val initializer: nl.tiemenschut.lox.Expression?): Statement()
